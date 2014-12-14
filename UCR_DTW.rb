@@ -311,6 +311,7 @@ class Trillion
 				}
 			end
 
+			# Read a chunk(=EPOCH) into buffer
 			ep = q.length - 1
 			while(ep < EPOCH && tdata.length != 0)
 				buffer[ep] = tdata.shift
@@ -336,6 +337,7 @@ class Trillion
 					t[i % q.length] = d
 					t[(i % q.length) + q.length] = d
 
+					# After the size of t is q.length or more, starts the pruning works
 					if( i >= q.length - 1)
 						mean = ex / q.length
 						std = (ex2 / q.length - mean ** 2) ** 0.5
