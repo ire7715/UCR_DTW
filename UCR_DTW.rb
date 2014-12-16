@@ -76,51 +76,50 @@ class Trillion
 		x0 = (t[j] - mean) / std
 		y0 = (t[(j + q.length - 1)] - mean) / std
 		lb = dist(x0, q.first) + dist(y0, q.last)
-		if( lb >= bsf )	
-			return lb
-		end
+		return lb, 1 if( lb >= bsf )
 
 		# 2 points at front
 		x1 = (t[(j + 1)] - mean) / std
 		d = [dist(x1, q.first), dist(x0, q[1]), dist(x1, q[1])].min
 		lb += d
-		if (lb >= bsf)
-			return lb
-		end
+		return lb, 2 if ( d >= bsf)
+		return lb, 1 if (lb >= bsf)
 
     	# 2 points at back
     	y1 = (t[(j + q.length - 2)] - mean) / std
     	d = [dist(y1, q.last), dist(y0, q[-2]), dist(y1, q[-2])].min
     	lb += d
-    	if (lb >= bsf)
-    		return lb
-    	end
+		return lb, q.length - 2 + 1 if ( d >= bsf)
+    	return lb, 1 if (lb >= bsf)
 
     	# 3 points at front
     	x2 = (t[(j + 2)] - mean) / std
     	d = [dist(x0,q[2]), dist(x1, q[2]), dist(x2,q[2]), dist(x2,q[1]), dist(x2,q.first)].min
     	lb += d
-    	if (lb >= bsf)
-    		return lb
-    	end
+		return lb, 3 if ( d >= bsf)
+    	return lb, 1 if (lb >= bsf)
 
     	# 3 points at back
     	y2 = (t[(q.length - 3 + j)] - mean) / std
     	d = [dist(y0, q[-3]), dist(y1, q[-3]), dist(y2, q[-3]), dist(y2, q[-2]), dist(y2, q[-1])].min
     	lb += d
+		return lb, q.length - 3 + 1 if ( d >= bsf)
 
-    	return lb
+    	return lb, 1
 	end
 
 	# O(n)
 	def self.lb_keogh_cumulative(order, t, uo, lo, cb, j, m, mean, std, bsf = Float::INFINITY)
 		lb = 0
+		jump = order.first
 
 		# Compute the distances of t and query envelop.
 		m.times{ |i|
-
 			x = (t[(j + order[i]).to_i] - mean) / std
 			d = 0
+
+			jump = order[i] if(order[i] < jump)
+
 			if (x > uo[i])
 				d = dist(x, uo[i])
 			elsif (x < lo[i])
@@ -134,17 +133,20 @@ class Trillion
 			end
 		}
 
-		return lb
+		return lb, (jump + 1)
 	end
 
 	# O(n)
 	def self.lb_keogh_data_cumulative (order, qo, cb, l, u, j, mean, std, bsf = Float::INFINITY)
 		lb = 0
+		jump = order.first
 
 		order.length.times{ |i|
 			uu = (u[j + order[i]] - mean) / std
 			ll = (l[j + order[i]] - mean) / std
 			d = 0
+
+			jump = order[i] if(order[i] < jump)
 
 			if (qo[i] > uu)
 				d = dist(qo[i], uu)
@@ -158,21 +160,21 @@ class Trillion
 				break
 			end
 		}
-		return lb
+		return lb, (jump + 1)
 	end
 
 	# Draw the diagonally dtw window path to a rectangle, so we can reuse the cost/cost_prev array.
-	def self.dtw(a_seq, b_seq, cb, m, r, bsf = Float::INFINITY)
+	def self.dtw(a_seq, b_seq, cb, r, bsf = Float::INFINITY)
 		cost = Array.new(2 * r + 1, Float::INFINITY)
 		cost_prev = Array.new(2 * r + 1, Float::INFINITY)
 		k = 0
 
-		m.times{ |i|
+		a_seq.length.times{ |i|
 			k = [0, r - i].max
 			min_cost = Float::INFINITY
 
 			j = [0,i-r].max
-			while(j <= [m-1,i+r].min)
+			while(j <= [a_seq.length-1,i+r].min)
 				if( i == 0 && j == 0)
 					min_cost = cost[k] = dist(a_seq[0], b_seq[0])
 				else
@@ -202,7 +204,7 @@ class Trillion
 				j += 1
 			end
 
-			if(i+r < m-1 && min_cost + cb[i+r+1] >= bsf)
+			if(i+r < a_seq.length-1 && min_cost + cb[i+r+1] >= bsf)
 				return min_cost + cb[i+r+1]
 			end
 
@@ -218,7 +220,7 @@ class Trillion
 
 	EPOCH = 100000
 
-	def initialize(dat, query, window_rate, dontSort)
+	def initialize(dat, query, window_rate, dontSort, dontJump)
 
 		loc = 0
 		kim = keogh = keogh2 = 0
@@ -296,7 +298,7 @@ class Trillion
 		cb1 = Array.new(q.length, 0)
 		cb2 = Array.new(q.length, 0)
 
-		i = j =0
+		i = j  = jump_times = 0
 		ex = ex2 = 0.0
 		done = false
 		it = ep = k = 0
@@ -344,6 +346,7 @@ class Trillion
 				end
 
 				ex = ex2 = 0
+				jump = 0
 				ep.times{|i|
 					d = buffer[i]
 
@@ -353,59 +356,64 @@ class Trillion
 					t[i % q.length] = d
 					t[(i % q.length) + q.length] = d
 
+					jump -= 1 if( jump > 0 )
+
 					# After the size of t is q.length or more, starts the pruning works
 					if( i >= q.length - 1)
-						mean = ex / q.length
-						std = (ex2 / q.length - mean ** 2) ** 0.5
-
 						j = (i + 1) % q.length
 
-						iCap = i - (q.length - 1)
+						if( dontJump || jump <= 0 )
+							mean = ex / q.length
+							std = (ex2 / q.length - mean ** 2) ** 0.5
 
-						lb_kim = Trillion::lb_kim_hierarchy(t, q, j, mean, std, bsf)
+							iCap = i - (q.length - 1)
 
-						if(lb_kim < bsf)
-							lb_k = Trillion::lb_keogh_cumulative(order, t, uo, lo, cb1, j, q.length, mean, std, bsf)
+							lb_kim, jump = Trillion::lb_kim_hierarchy(t, q, j, mean, std, bsf)
 
-							if(lb_k < bsf)
+							if(lb_kim < bsf)
+								lb_k, jump = Trillion::lb_keogh_cumulative(order, t, uo, lo, cb1, j, q.length, mean, std, bsf)
 
-								lb_k2 = Trillion::lb_keogh_data_cumulative(order, qo, cb2, l_buff, u_buff, iCap, mean, std, bsf)
+								if(lb_k < bsf)
 
-								if (lb_k2 < bsf)
+									lb_k2, jump = Trillion::lb_keogh_data_cumulative(order, qo, cb2, l_buff, u_buff, iCap, mean, std, bsf)
 
-									if(lb_k > lb_k2)
-										cb[q.length - 1] = cb1[q.length - 1]
-										(q.length - 2).downto(0){|k|
-											cb[k] = cb[k + 1] + cb1[k]
+									if (lb_k2 < bsf)
+
+										if(lb_k > lb_k2)
+											cb[q.length - 1] = cb1[q.length - 1]
+											(q.length - 2).downto(0){|k|
+												cb[k] = cb[k + 1] + cb1[k]
+											}
+										else
+											cb[q.length - 1] = cb2[q.length - 1]
+											(q.length - 2).downto(0){|k|
+												cb[k] = cb[k + 1] + cb2[k]
+											}
+										end
+
+										tz = t[j .. j + q.length - 1].map{ |x|
+											(x - mean) / std
 										}
+
+										dist = Trillion::dtw(tz, q, cb, r, bsf)
+
+										if(dist < bsf)
+											bsf = dist
+											loc = it * (EPOCH - q.length + 1) + i - q.length + 1
+										end
+
 									else
-										cb[q.length - 1] = cb2[q.length - 1]
-										(q.length - 2).downto(0){|k|
-											cb[k] = cb[k + 1] + cb2[k]
-										}
+										keogh2 += 1
 									end
-
-									tz = t[j .. j + q.length - 1].map{ |x|
-										(x - mean) / std
-									}
-
-									dist = Trillion::dtw(tz, q, cb, q.length, r, bsf)
-
-									if(dist < bsf)
-										bsf = dist
-										loc = it * (EPOCH - q.length + 1) + i - q.length + 1
-									end
-
 								else
-									keogh2 += 1
+									keogh += 1
 								end
 							else
-								keogh += 1
+								kim += 1
 							end
 						else
-							kim += 1
+							jump_times += 1
 						end
-
 						ex -= t[j]
 						ex2 -= t[j] ** 2
 					end
@@ -434,13 +442,15 @@ class Trillion
 		puts "Execution time: #{exeTime}"
 		puts " "
 
+		jump_perc = 100.0 * jump_times / i
+		puts "Pruned by Jump: #{jump_perc}%"
 		kim_perc = 100.0 * kim / i
-		puts "Pruned by LB_Kim: #{kim_perc}"
+		puts "Pruned by LB_Kim: #{kim_perc}%"
 		keogh_perc = 100.0 * keogh / i
-		puts "Pruned by LB_Keogh: #{keogh_perc}"
+		puts "Pruned by LB_Keogh: #{keogh_perc}%"
 		keogh2_perc = 100.0 *keogh2 / i
-		puts "Pruned by LB_Keogh2: #{keogh2_perc}"
-		dtw_prec = 100.0 - (kim_perc + keogh_perc + keogh2_perc)
+		puts "Pruned by LB_Keogh2: #{keogh2_perc}%"
+		dtw_prec = 100.0 - (kim_perc + keogh_perc + keogh2_perc + jump_perc)
 		puts "DTW Calcuation  : #{dtw_prec}"
 	end
 
@@ -481,13 +491,15 @@ if __FILE__ == $PROGRAM_NAME
 	end
 
 	dontSort = false
+	dontJump = false
 
 	if (ARGV.length > 3)
 		ARGV[3 .. ARGV.length - 1].each{ |x|
 			dontSort = true if(x == "-ns")
+			dontJump = true if(x == "-nj")
 		}
 	end
 
-	Trillion.new(ARGV[0], ARGV[1], ARGV[2].to_f, dontSort)
+	Trillion.new(ARGV[0], ARGV[1], ARGV[2].to_f, dontSort, dontJump)
 
 end
