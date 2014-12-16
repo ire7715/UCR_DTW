@@ -28,7 +28,7 @@ DTW Calcuation  : 4.744599999999991
 
 <h4>Result with jump pruning</h4>
 ```
-ruby UCR_DTW.rb Data.txt Query2.txt 0.1
+>ruby UCR_DTW.rb Data.txt Query2.txt 0.1
 Location: 430264
 Distance: 3.7906991699901917
 Data scanned: 1000000
