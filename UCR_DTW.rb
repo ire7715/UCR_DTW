@@ -1,3 +1,11 @@
+=begin
+	
+	Author: Ire Sun
+	Date: Dec 13, 2014
+	Ref: Searching and Mining Trillions of Time Series Subsequences under Dynamic Time Warping, 2011
+
+=end
+
 class Trillion
 
 	def self.dist (x, y)
@@ -268,12 +276,10 @@ class Trillion
 				lo.push(l[x.index])
 			}
 		else
-			q.length.times{ |i|
-				order.push(i)
-				qo.push(q[i])
-				uo.push(u[i])
-				lo.push(l[i])
-			}
+			order = (0 .. q.length - 1).to_a
+			qo = q
+			uo = u
+			lo = l
 		end
 
 		cb = Array.new(q.length, 0)
