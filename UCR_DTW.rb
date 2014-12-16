@@ -28,6 +28,8 @@ class Trillion
 				l[i-r-1] = t[dl.first.to_i]
 			end
 
+			# Pop out the bound that is not maximium or minimum.
+			# Store the max upper bound and min lower bound within window r.
 			if (t[i] > t[i-1])
 				du.pop
 				while (!(du.empty?) && t[i] > t[du.last.to_i])
@@ -43,6 +45,7 @@ class Trillion
 			dl.push(i)
 
 			# i - r - 1 == r + du.first
+			# Pop out the bound that os out of window r.
 			if ( i == 2 * r + 1 + du.first)
 				du.shift
 			elsif ( i == 2 * r + 1 + dl.first)
@@ -50,6 +53,7 @@ class Trillion
 			end
 		}
 
+		# The envelop of first r points are from r+1 .. r+r, so the last r points' envelop haven't settle down yet.
 		(len .. len+r).each{ |i|
 			u[i-r-1] = t[du.first.to_i]
 			l[i-r-1] = t[dl.first.to_i]
@@ -64,6 +68,7 @@ class Trillion
 		return l, u
 	end
 
+	# O(1)
 	def self.lb_kim_hierarchy(t, q, j, mean, std, bsf = Float::INFINITY)
 		lb = 0
 
@@ -107,9 +112,11 @@ class Trillion
     	return lb
 	end
 
+	# O(n)
 	def self.lb_keogh_cumulative(order, t, uo, lo, cb, j, m, mean, std, bsf = Float::INFINITY)
 		lb = 0
 
+		# Compute the distances of t and euqry envelop.
 		m.times{ |i|
 
 			x = (t[(j + order[i]).to_i] - mean) / std
@@ -130,8 +137,10 @@ class Trillion
 		return lb
 	end
 
+	# O(n)
 	def self.lb_keogh_data_cumulative (order, qo, cb, l, u, j, mean, std, bsf = Float::INFINITY)
 		lb = 0
+
 		order.length.times{ |i|
 			uu = (u[j + order[i]] - mean) / std
 			ll = (l[j + order[i]] - mean) / std
@@ -152,6 +161,7 @@ class Trillion
 		return lb
 	end
 
+	# Draw the diagonally dtw window path to a rectangle, so we can reuse the cost/cost_prev array.
 	def self.dtw(a_seq, b_seq, cb, m, r, bsf = Float::INFINITY)
 		cost = Array.new(2 * r + 1, Float::INFINITY)
 		cost_prev = Array.new(2 * r + 1, Float::INFINITY)
@@ -223,7 +233,7 @@ class Trillion
 
 		start = Time.now
 
-		# read query
+		# Read query
 		puts "Read query"
 		qp = File.open(query_name, "r")
 		q = Array.new()
@@ -237,7 +247,7 @@ class Trillion
 		mean = ex / q.length
 		std = (ex2 / q.length - mean ** 2) ** 0.5
 
-		# normalize
+		# Normalize
 		puts "Normalize query"
 		q.map!{ |x|
 			(x - mean) / std
@@ -249,7 +259,7 @@ class Trillion
 			r = window_rate.floor
 		end
 
-		# calculating the envelop of q
+		# Calculating the envelop of q
 		puts "Calculating the envelop of q"
 		l, u = Trillion::upper_lower_lemire(q, q.length, r)
 
