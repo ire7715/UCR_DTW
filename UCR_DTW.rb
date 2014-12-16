@@ -116,7 +116,7 @@ class Trillion
 	def self.lb_keogh_cumulative(order, t, uo, lo, cb, j, m, mean, std, bsf = Float::INFINITY)
 		lb = 0
 
-		# Compute the distances of t and euqry envelop.
+		# Compute the distances of t and query envelop.
 		m.times{ |i|
 
 			x = (t[(j + order[i]).to_i] - mean) / std
