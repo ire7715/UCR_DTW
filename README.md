@@ -23,7 +23,7 @@ Pruned by Jump: 0.0%
 Pruned by LB_Kim: 22.6827%
 Pruned by LB_Keogh: 35.9776%
 Pruned by LB_Keogh2: 36.5951%
-DTW Calcuation  : 4.744599999999991
+DTW Calcuation  : 4.744599999999991%
 ```
 
 <h4>Result with jump pruning</h4>
@@ -38,5 +38,5 @@ Pruned by Jump: 57.7814%
 Pruned by LB_Kim: 16.4837%
 Pruned by LB_Keogh: 15.1936%
 Pruned by LB_Keogh2: 7.7391%
-DTW Calcuation  : 2.802199999999999
+DTW Calcuation  : 2.802199999999999%
 ```
