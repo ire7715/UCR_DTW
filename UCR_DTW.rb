@@ -451,7 +451,7 @@ class Trillion
     keogh2_perc = 100.0 *keogh2 / i
     puts "Pruned by LB_Keogh2: #{keogh2_perc}%"
     dtw_prec = 100.0 - (kim_perc + keogh_perc + keogh2_perc + jump_perc)
-    puts "DTW Calcuation  : #{dtw_prec}"
+    puts "DTW Calcuation  : #{dtw_prec}%"
   end
 
   def location
