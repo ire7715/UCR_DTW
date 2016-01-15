@@ -220,7 +220,7 @@ class Trillion
 
   EPOCH = 100000
 
-  def initialize(dat, query, window_rate, dontSort, dontJump)
+  def calcuate(dat, query, window_rate, dontSort, dontJump)
 
     loc = 0
     kim = keogh = keogh2 = 0
