@@ -6,7 +6,7 @@ An implementation of "**Searching and Mining Trillions of Time Series Subsequenc
 ## Improvement
  - Fix the sorting bug. (Origin version wouldn't swap when the difference of  two values is less than 1.)
  - Delay the z-normalize for t sequence. (Only dtw apply the tz array, so there is no need to do z-normalize when keogh_data)
- - **Jump pruning**: When we are pruning by sorted lower bound, we can find out that which index is the most front computed index(j). And instead of compute the next linearly, we jump to (j+1) directly. Jump pruning prunes over 50% for query2.txt.
+ - **Jump pruning**: When we are pruning by sorted lower bound, we can find out that which index is the leading computed index(j). And instead of moving the window by 1, we jump to (j+1) directly. Jump pruning prunes over 50% for query2.txt.
 
 -------
 
